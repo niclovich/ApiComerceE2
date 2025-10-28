@@ -1,0 +1,34 @@
+# Environment configuration for API Commerce
+# Rename to .env and keep it out of source control (add to .gitignore)
+
+# App
+NODE_ENV=development
+PORT=3000
+
+# MongoDB (local single-node)
+# Use this for local development (uncomment if using local Mongo)
+# MONGO_URI=mongodb://127.0.0.1:27017
+DB_NAME=ecommerce
+PORT=3000
+DBUSER='code'
+DBPASSWORD='coder'
+MONGO_CLUSTER='cluster0.ol9jbpi.mongodb.net'
+# Alternatively, use Atlas-style credentials (these variables are used by src/db/config.js)
+# If you prefer Atlas, comment out MONGO_URI above and set DBUSER/DBPASSWORD/MONGO_CLUSTER below
+DBUSER=code
+DBPASSWORD=coder
+MONGO_CLUSTER=cluster0.ol9jbpi.mongodb.net
+
+# JWT settings
+JWT_SECRET=f9A$3a!w7KxZ@!12zL9Q
+JWT_EXPIRES_IN=1h
+
+# Bcrypt salt rounds (optional)
+SALT_ROUNDS=10
+
+# Optional extras
+# LOG_LEVEL=info
+# EMAIL_HOST=smtp.example.com
+# EMAIL_PORT=587
+# EMAIL_USER=me@example.com
+# EMAIL_PASS=supersecret

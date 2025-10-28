@@ -1,0 +1,24 @@
+<div class="card shadow-sm">
+  <div class="card-body">
+    <h3 class="mb-3">Panel</h3>
+    {{#if user}}
+      <p class="lead">Bienvenido <strong>{{user.first_name}} {{user.last_name}}</strong></p>
+      <p class="mb-1">Email: <code>{{user.email}}</code></p>
+      <p class="mb-3">Rol: <span class="badge bg-secondary">{{user.role}}</span></p>
+      <div class="d-flex gap-2">
+        <a href="/products" class="btn btn-outline-primary">Ver productos</a>
+        <button id="logout" class="btn btn-danger">Cerrar sesión</button>
+      </div>
+    {{else}}
+      <p>No estás autenticado. <a href="/login">Iniciar sesión</a></p>
+    {{/if}}
+  </div>
+</div>
+
+<script>
+  const logoutBtn = document.getElementById('logout');
+  if (logoutBtn) logoutBtn.addEventListener('click', async () => {
+    await fetch('/api/sessions/logout', { method: 'POST', credentials: 'same-origin' });
+    window.location.href = '/';
+  });
+</script>

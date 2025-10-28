@@ -1,0 +1,78 @@
+<div class="card shadow-sm">
+  <div class="card-body">
+    <h4 class="card-title mb-3">Iniciar sesión</h4>
+    <div id="alertPlaceholder"></div>
+    <form id="loginForm" autocomplete="off" class="row g-3">
+      <div class="col-12">
+        <label class="form-label">Email</label>
+        <input name="email" type="email" class="form-control" required />
+      </div>
+      <div class="col-12">
+        <label class="form-label">Contraseña</label>
+        <input name="password" type="password" class="form-control" required />
+      </div>
+      <div class="col-12 d-grid">
+        <button class="btn btn-primary">Ingresar</button>
+      </div>
+    </form>
+
+    <hr />
+    <h6 class="mb-2">Respuesta</h6>
+    <pre id="output" class="small bg-light p-2 rounded">Esperando acción...</pre>
+  </div>
+</div>
+
+<script>
+  const form = document.getElementById('loginForm');
+  const out = document.getElementById('output');
+  const alertPlaceholder = document.getElementById('alertPlaceholder');
+
+  function showAlert(message, type = 'info'){
+    alertPlaceholder.innerHTML = `<div class="alert alert-${type} alert-dismissible" role="alert">${message}<button type="button" class="btn-close" data-bs-dismiss="alert"></button></div>`;
+  }
+
+  form.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    showAlert('Enviando credenciales...', 'info');
+    out.textContent = 'Enviando...';
+    const fd = new FormData(form);
+    const data = Object.fromEntries(fd.entries());
+    try {
+      const res = await fetch('/api/sessions/login', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(data),
+        credentials: 'same-origin'
+      });
+
+      const ct = res.headers.get('content-type') || '';
+      const body = ct.includes('application/json') ? await res.json() : await res.text();
+
+      if (!res.ok) {
+        const msg = (typeof body === 'string') ? body : (body.error || JSON.stringify(body));
+        showAlert(msg, 'danger');
+        out.textContent = (typeof body === 'string') ? body : JSON.stringify(body, null, 2);
+        return;
+      }
+
+      showAlert('Ingreso correcto. Redirigiendo...', 'success');
+      out.textContent = (typeof body === 'string') ? body : JSON.stringify(body, null, 2);
+      window.location.href = '/panel';
+    } catch (err) {
+      showAlert('Error: ' + err.message, 'danger');
+      out.textContent = 'Error: ' + err.message;
+    }
+  });
+
+  (async function(){
+    try {
+      const resp = await fetch('/api/sessions/current', { credentials: 'same-origin' });
+      if (resp.ok){
+        const data = await resp.json();
+        if (data.user) {
+          document.querySelectorAll('.navbar .nav-link').forEach(a => { if (a.getAttribute('href') === '/login' || a.getAttribute('href') === '/register') a.style.display = 'none'; });
+        }
+      }
+    } catch (e){ /* ignore */ }
+  })();
+</script>

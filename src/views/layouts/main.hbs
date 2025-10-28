@@ -1,0 +1,69 @@
+<!doctype html>
+<html lang="es">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>{{title}}</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+    <style>
+      body { min-height: 100vh; display:flex; flex-direction:column; }
+      .content { flex: 1 0 auto; }
+      .sidebar { min-width: 220px; }
+    </style>
+  </head>
+  <body>
+    <!-- Navbar -->
+    <nav class="navbar navbar-expand-lg navbar-dark bg-primary">
+      <div class="container-fluid">
+        <a class="navbar-brand" href="/">API Commerce</a>
+        <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navMain">
+          <span class="navbar-toggler-icon"></span>
+        </button>
+        <div class="collapse navbar-collapse" id="navMain">
+          <ul class="navbar-nav ms-auto">
+            {{#if user}}
+              <li class="nav-item dropdown">
+                <a class="nav-link dropdown-toggle" href="#" id="userMenu" role="button" data-bs-toggle="dropdown" aria-expanded="false">{{#if user.first_name}}{{user.first_name}}{{else}}{{user.email}}{{/if}}</a>
+                <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="userMenu">
+                  <li><a class="dropdown-item" href="/panel">Panel</a></li>
+                  <li><a class="dropdown-item" href="/profile">Perfil</a></li>
+                  <li><hr class="dropdown-divider"></li>
+                  <li><a class="dropdown-item" href="#" id="logoutNav">Cerrar sesión</a></li>
+                </ul>
+              </li>
+            {{else}}
+              <li class="nav-item"><a class="nav-link" href="/register">Registro</a></li>
+              <li class="nav-item"><a class="nav-link" href="/login">Login</a></li>
+            {{/if}}
+          </ul>
+        </div>
+      </div>
+    </nav>
+
+    <div class="container-fluid content mt-4">
+      <div class="row">
+        <main class="col-md-6 col-lg-6 mx-auto">
+          {{{body}}}
+        </main>
+      </div>
+    </div>
+
+    <footer class="bg-light text-center py-3 mt-auto">
+      {{> footer}}
+    </footer>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+      // navbar logout handler (uses fetch to POST /api/sessions/logout)
+      document.addEventListener('click', function (e) {
+        const el = e.target;
+        if (el && el.id === 'logoutNav') {
+          e.preventDefault();
+          fetch('/api/sessions/logout', { method: 'POST', credentials: 'same-origin' })
+            .then(() => window.location.href = '/login')
+            .catch(() => window.location.href = '/login');
+        }
+      });
+    </script>
+  </body>
+</html>
