@@ -19,6 +19,9 @@ router.post('/', controller.createOrUpdateCart);
 // Add item to current user's cart
 router.post('/items', controller.addItem);
 
+// Finalize purchase for current user
+router.post('/checkout', controller.finalizePurchase);
+
 // Clear cart for user
 router.delete('/:id', controller.clearCart);
 

@@ -1,0 +1,135 @@
+{{!-- Checkout page: shows cart summary and lets user confirm purchase --}}
+<div class="card shadow-sm">
+  <div class="card-body">
+    <h3 class="mb-3">Finalizar compra</h3>
+
+    <div id="checkoutContainer">
+      <div class="text-center py-5 text-muted">Cargando resumen...</div>
+    </div>
+
+    <div class="mt-3 d-flex justify-content-between align-items-center">
+      <div>
+        <button id="backToCart" class="btn btn-outline-secondary btn-sm">Volver al carrito</button>
+      </div>
+      <div>
+        <strong>Total:</strong> <span id="checkoutTotal">$0.00</span>
+        <button id="confirmPurchaseBtn" class="btn btn-success btn-sm ms-3">Confirmar compra</button>
+      </div>
+    </div>
+  </div>
+  <div class="card-footer text-muted small">Se procesará el pago y se generará una orden.</div>
+</div>
+
+<template id="checkoutItemTpl">
+  <div class="d-flex align-items-center py-2 border-bottom">
+    <div style="width:64px; height:48px; overflow:hidden;" class="me-3">
+      <img class="img-fluid" style="object-fit:cover; width:100%; height:100%;" src="" alt="">
+    </div>
+    <div class="flex-grow-1">
+      <div class="fw-semibold item-title"></div>
+      <div class="small text-muted item-meta"></div>
+    </div>
+    <div class="text-end ms-3">
+      <div class="fw-semibold item-subtotal"></div>
+      <div class="small text-muted">x <span class="item-qty"></span></div>
+    </div>
+  </div>
+</template>
+
+<div class="mt-4" id="checkoutResult"></div>
+
+<script>
+  const fmt = (v) => new Intl.NumberFormat('es-AR', { style: 'currency', currency: 'ARS' }).format(v);
+
+  async function fetchJson(url, opts){
+    const r = await fetch(url, Object.assign({ credentials: 'same-origin' }, opts));
+    if (r.status === 401) { window.location.href = '/login'; throw new Error('Unauthorized'); }
+    if (!r.ok) throw new Error('Request failed ' + r.status);
+    return r.json();
+  }
+
+  async function loadSummary(){
+    const container = document.getElementById('checkoutContainer');
+    const tpl = document.getElementById('checkoutItemTpl');
+    container.innerHTML = '<div class="text-center py-5 text-muted">Cargando resumen...</div>';
+    try{
+      const cart = await fetchJson('/api/carts/me');
+      if (!cart || !Array.isArray(cart.products) || cart.products.length === 0){
+        container.innerHTML = '<div class="text-center py-5 text-muted">Tu carrito está vacío.</div>';
+        document.getElementById('checkoutTotal').textContent = fmt(0);
+        return;
+      }
+      container.innerHTML = '';
+      let total = 0;
+      for (const it of cart.products){
+        const prod = (it.product && typeof it.product === 'object') ? it.product : null;
+        const title = prod ? prod.title : 'Producto';
+        const price = prod ? (prod.price||0) : 0;
+        const qty = it.quantity || 0;
+        const thumb = (prod && Array.isArray(prod.thumbnails) && prod.thumbnails[0]) ? prod.thumbnails[0] : 'https://via.placeholder.com/300x200?text=Sin+imagen';
+        const subtotal = price * qty;
+        total += subtotal;
+
+        const clone = tpl.content.cloneNode(true);
+        clone.querySelector('img').src = thumb;
+        clone.querySelector('.item-title').textContent = title;
+        clone.querySelector('.item-meta').textContent = prod && prod.code ? ('Código: ' + prod.code) : '';
+        clone.querySelector('.item-subtotal').textContent = fmt(subtotal);
+        clone.querySelector('.item-qty').textContent = qty;
+        container.appendChild(clone);
+      }
+      document.getElementById('checkoutTotal').textContent = fmt(total);
+    }catch(err){
+      console.error(err);
+      container.innerHTML = '<div class="text-center py-5 text-danger">Error cargando resumen.</div>';
+    }
+  }
+
+  document.addEventListener('DOMContentLoaded', () => {
+    loadSummary();
+
+    document.getElementById('backToCart').addEventListener('click', () => window.location.href = '/cart');
+
+    document.getElementById('confirmPurchaseBtn').addEventListener('click', async () => {
+      if (!confirm('Confirma que deseas finalizar la compra?')) return;
+      const btn = document.getElementById('confirmPurchaseBtn');
+      btn.disabled = true; btn.textContent = 'Procesando...';
+      try{
+        const res = await fetchJson('/api/carts/checkout', { method: 'POST', headers: { 'Content-Type': 'application/json' } });
+        const t = res.ticket || res;
+        const out = document.getElementById('checkoutResult');
+        out.innerHTML = '';
+        const h = document.createElement('div');
+        h.className = 'mt-3';
+        h.innerHTML = '<h5>Resultado de la compra</h5>';
+        const purchased = t.purchased || [];
+        const failed = t.failed || [];
+        h.innerHTML += `<p><strong>Total pagado:</strong> ${fmt(t.total || 0)}</p>`;
+        if (purchased.length) {
+          const ul = document.createElement('div'); ul.className = 'mb-2';
+          ul.innerHTML = '<h6>Productos comprados</h6>' + purchased.map(p => `<div class="small">${p.quantity} x ${p.title} — ${fmt(p.subtotal)}</div>`).join('');
+          h.appendChild(ul);
+        }
+        if (failed.length){
+          const f = document.createElement('div'); f.className = 'mt-2 text-warning';
+          f.innerHTML = '<h6>Problemas</h6>' + failed.map(x => `<div class="small">${x.reason} — ${x.product} (solicitado: ${x.requested}, disponible: ${x.available || 0}${x.purchased ? ', comprado: ' + x.purchased : ''})</div>`).join('');
+          h.appendChild(f);
+        }
+
+        if (t.order && t.order._id) {
+          const link = document.createElement('div');
+          link.className = 'mt-3';
+          link.innerHTML = `<a href="/orders/${t.order._id}" class="btn btn-sm btn-outline-primary">Ver orden</a> <a href="/panel" class="btn btn-sm btn-outline-secondary ms-2">Volver al panel</a>`;
+          h.appendChild(link);
+        }
+
+        out.appendChild(h);
+        // reload summary (cart should be empty now)
+        loadSummary();
+      }catch(err){
+        console.error(err);
+        alert('Error procesando la compra');
+      }finally{ btn.disabled = false; btn.textContent = 'Confirmar compra'; }
+    });
+  });
+</script>

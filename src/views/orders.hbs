@@ -1,0 +1,63 @@
+{{!-- Orders list view --}}
+<div class="card shadow-sm">
+  <div class="card-body">
+    <h3 class="mb-3">Mis órdenes</h3>
+    <div id="ordersContainer">
+      <div class="text-center py-5 text-muted">Cargando órdenes...</div>
+    </div>
+  </div>
+</div>
+
+<template id="orderCardTpl">
+  <div class="card mb-2">
+    <div class="card-body d-flex justify-content-between align-items-center">
+      <div>
+        <div class="fw-semibold order-title"></div>
+        <div class="small text-muted order-meta"></div>
+      </div>
+      <div class="text-end">
+        <div class="fw-semibold order-total"></div>
+        <a class="btn btn-sm btn-outline-primary ms-2 view-order" href="#">Ver</a>
+      </div>
+    </div>
+  </div>
+</template>
+
+<script>
+  const fmt = (v) => new Intl.NumberFormat('es-AR', { style: 'currency', currency: 'ARS' }).format(v);
+
+  async function fetchJson(url, opts){
+    const r = await fetch(url, Object.assign({ credentials: 'same-origin' }, opts));
+    if (r.status === 401) { window.location.href = '/login'; throw new Error('Unauthorized'); }
+    if (!r.ok) throw new Error('Request failed ' + r.status);
+    return r.json();
+  }
+
+  async function loadOrders(){
+    const container = document.getElementById('ordersContainer');
+    container.innerHTML = '<div class="text-center py-5 text-muted">Cargando órdenes...</div>';
+    try{
+      const orders = await fetchJson('/api/orders');
+      if (!orders || orders.length === 0){
+        container.innerHTML = '<div class="text-center py-5 text-muted">No hay órdenes.</div>';
+        return;
+      }
+      container.innerHTML = '';
+      const tpl = document.getElementById('orderCardTpl');
+      for (const o of orders){
+        const clone = tpl.content.cloneNode(true);
+        clone.querySelector('.order-title').textContent = `Orden ${o._id} — ${o.status}`;
+        clone.querySelector('.order-meta').textContent = new Date(o.purchaseDate || o.createdAt || o.updatedAt).toLocaleString();
+        clone.querySelector('.order-total').textContent = fmt(o.total || 0);
+        const btn = clone.querySelector('.view-order');
+        btn.href = `/orders/${o._id}`;
+        container.appendChild(clone);
+      }
+    }catch(err){
+      console.error(err);
+      container.innerHTML = '<div class="text-center py-5 text-danger">Error cargando órdenes.</div>';
+    }
+  }
+
+  document.addEventListener('DOMContentLoaded', loadOrders);
+</script>

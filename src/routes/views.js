@@ -1,9 +1,9 @@
 const express = require('express');
-const passport = require('passport');
 const ensureGuest = require('../middleware/ensureGuest');
 const ensureAuth = require('../middleware/ensureAuth');
 
-const productService = require('../services/product.service');
+const {renderPanel} = require('../controllers/panel.controller');
+const { route } = require('./sessions');
 const router = express.Router();
 
 router.get('/', (req, res) => {
@@ -16,29 +16,25 @@ router.get('/login', ensureGuest, (req, res) => res.render('login', { title: 'Lo
 
 router.get('/register', ensureGuest, (req, res) => res.render('register', { title: 'Registro' }));
 
-router.get('/panel', ensureAuth, async (req, res, next) => {
-  try {
-    const user = req.user || res.locals.user || null;
-    if (!user) return res.redirect('/login');
-    // delegate panel-specific listing rules to productListService
-    const options = {
-      page: req.query.page,
-      limit: req.query.limit,
-      category: req.query.category,
-      search: req.query.search,
-      sort: req.query.sort
-    };
-  // include user in options so listProducts can apply role-based visibility
-  options.user = user;
-  const products = await productService.listProducts({}, options);
-    return res.render('panel', { user, products });
-  } catch (err) {
-    return next(err);
-  }
-});
+router.get('/panel', ensureAuth, renderPanel);
 // product creation view
 router.get('/products/create', ensureAuth, (req, res) => {
   return res.render('products/create', { title: 'Crear producto' });
 });
 
+router.get('/cart', ensureAuth, (req, res) => {
+  return res.render('cart', { title: 'Carrito de compras' });
+});
+
+router.get('/checkout', ensureAuth, (req, res) => {
+  return res.render('checkout', { title: 'Checkout' });
+});
+// Orders views
+router.get('/orders', ensureAuth, (req, res) => {
+  return res.render('orders', { title: 'Mis órdenes' });
+});
+
+router.get('/orders/:id', ensureAuth, (req, res) => {
+  return res.render('order', { title: 'Orden' });
+});
 module.exports = router;

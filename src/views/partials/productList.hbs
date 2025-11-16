@@ -9,33 +9,89 @@
   {{/if}}
 
   {{#if products.length}}
-    <div class="row row-cols-1 row-cols-md-2 g-3 mb-3">
+    <div class="row g-3 mb-3">
       {{#each products}}
-        <div class="col">
-          <div class="card h-100">
-            <div class="card-body d-flex flex-column">
-              <div class="d-flex justify-content-between align-items-start mb-2">
-                <h5 class="card-title mb-0">{{this.title}}</h5>
-                <small class="text-muted">{{this.price}} USD</small>
-              </div>
-              <p class="card-text small text-muted">Código: {{this.code}} · Stock: {{this.stock}}</p>
-              <p class="card-text">{{this.description}}</p>
+        <div class="col-12 mb-3">
+  <div class="card shadow-sm border-0 rounded-3 h-100">
+    <div class="row g-0">
+      
+      <!-- Imagen -->
+      <div class="col-md-4">
+        <img 
+          src="https://http2.mlstatic.com/D_NQ_NP_2X_673802-MLA84553858545_052025-F.webp" 
+          class="img-fluid rounded-start"
+          alt="{{this.title}}"
+          style="height:230px;width:100%;object-fit:cover;">
+      </div>
 
-              <div class="mt-auto d-flex justify-content-between align-items-center">
-                <div class="btn-group" role="group" aria-label="quantity-group">
-                  <button type="button" class="btn btn-outline-secondary btn-decrease" data-product-id="{{this._id}}">−</button>
-                  <button type="button" class="btn btn-outline-secondary btn-qty" data-product-id="{{this._id}}">0</button>
-                  <button type="button" class="btn btn-outline-secondary btn-increase" data-product-id="{{this._id}}">+</button>
-                </div>
+      <!-- Info -->
+      <div class="col-md-8">
+        <div class="card-body d-flex flex-column">
 
-                <div class="d-flex gap-2">
-                  <button type="button" class="btn btn-sm btn-primary btn-add-cart" data-product-id="{{this._id}}">Agregar al carrito</button>
-                  <a href="/products/{{this._id}}" class="btn btn-sm btn-outline-primary">Ver</a>
-                </div>
-              </div>
-            </div>
+          <div class="d-flex justify-content-between align-items-start">
+            <h5 class="fw-bold text-dark">{{this.title}}</h5>
+            <span class="badge bg-success fs-6">${{this.price}}</span>
           </div>
-        </div>
+
+          <p class="card-text small text-muted mb-1">
+            <strong>Código:</strong> {{this.code}}
+            &nbsp;·&nbsp;
+            <strong>Stock:</strong> {{this.stock}}
+          </p>
+
+          <p class="text-muted mb-3">{{this.description}}</p>
+
+          <div class="mt-auto d-flex justify-content-between align-items-center">
+
+            <!-- Cantidad -->
+            <div class="input-group input-group-sm quantity-box shadow-sm" style="width:130px;">
+              <button 
+                type="button" 
+                class="btn btn-outline-secondary btn-decrease"
+                data-product-id="{{this._id}}"
+                data-stock="{{this.stock}}">
+                <i class="bi bi-dash-lg">-</i>
+              </button>
+
+              <input 
+                type="text" 
+                readonly 
+                class="form-control text-center product-qty fw-semibold"
+                data-product-id="{{this._id}}" 
+                value="1">
+
+              <button 
+                type="button" 
+                class="btn btn-outline-secondary btn-increase"
+                data-product-id="{{this._id}}"
+                data-stock="{{this.stock}}">
+                <i class="bi bi-plus-lg">+</i>
+              </button>
+            </div>
+
+            <!-- Acciones -->
+            <div class="d-flex gap-2">
+              <button 
+                type="button"
+                class="btn btn-primary btn-sm px-3 btn-add-cart shadow-sm"
+                data-product-id="{{this._id}}"
+                data-stock="{{this.stock}}">
+                <i class="bi bi-cart-plus"></i> Agregar
+              </button>
+
+              <a href="/products/{{this._id}}" class="btn btn-outline-primary btn-sm px-3 shadow-sm">
+                Ver
+              </a>
+            </div>
+
+          </div><!-- /footer -->
+        </div><!-- /card-body -->
+      </div>
+
+    </div>
+  </div>
+</div>
+
       {{/each}}
     </div>
   {{else}}
@@ -48,89 +104,94 @@
 {{/if}}
 
 <script>
-  // Client-side cart helpers for product list
-  async function fetchJson(url, opts){
-    const res = await fetch(url, Object.assign({ credentials: 'same-origin' }, opts));
-    if (!res.ok) throw new Error('Request failed: ' + res.status);
-    return res.json();
+  function getQtyInput(pid) {
+    return document.querySelector(`.product-qty[data-product-id="${pid}"]`);
   }
 
-  async function getCart(){
-    try {
-      return await fetchJson('/api/carts/me', { method: 'GET' });
-    } catch (e) {
-      return null;
-    }
-  }
-
-  async function updateCart(items){
-    // items: [{ product, quantity }]
-    return fetchJson('/api/carts', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ items }) });
-  }
-
-  function normalizeProductId(p){ return (typeof p === 'string') ? p : (p._id || p.id || p.product || ''); }
-
-  async function syncQtyDisplays(){
-    const cart = await getCart();
-    const map = new Map();
-    if (cart && Array.isArray(cart.products)){
-      cart.products.forEach(it => map.set(normalizeProductId(it.product).toString(), it.quantity));
-    }
-    document.querySelectorAll('.btn-qty').forEach(b => {
-      const id = b.dataset.productId;
-      b.textContent = map.get(id) || 0;
-    });
-  }
-
-  document.addEventListener('click', async (e) => {
-    const dec = e.target.closest('.btn-decrease');
-    const inc = e.target.closest('.btn-increase');
-    const add = e.target.closest('.btn-add-cart');
-    if (!dec && !inc && !add) return;
-    e.preventDefault();
-
-    // ensure user logged in - try to fetch current session
-    let sessionOk = true;
+  async function ensureSession() {
     try {
       const cur = await fetch('/api/sessions/current', { credentials: 'same-origin' });
-      if (!cur.ok) sessionOk = false;
-    } catch (err) { sessionOk = false; }
-    if (!sessionOk) return window.location.href = '/login';
-
-    const target = dec || inc || add;
-    const pid = target.dataset.productId;
-    // build updated items from current cart
-    const cart = await getCart();
-    const items = [];
-    if (cart && Array.isArray(cart.products)){
-      for (const it of cart.products){
-        const prodId = normalizeProductId(it.product).toString();
-        items.push({ product: prodId, quantity: it.quantity });
-      }
+      return cur.ok;
+    } catch {
+      return false;
     }
+  }
 
-    const idx = items.findIndex(i => i.product.toString() === pid.toString());
-    if (dec){
-      if (idx >= 0) items[idx].quantity = Math.max(0, items[idx].quantity - 1);
-    } else if (inc){
-      if (idx >= 0) items[idx].quantity = items[idx].quantity + 1;
-      else items.push({ product: pid, quantity: 1 });
-    } else if (add){
-      if (idx >= 0) items[idx].quantity = items[idx].quantity + 1;
-      else items.push({ product: pid, quantity: 1 });
-    }
+  // ---------------------------
+  // 1) Disminuir cantidad
+  // ---------------------------
+  document.addEventListener('click', (e) => {
+    const btn = e.target.closest('.btn-decrease');
+    if (!btn) return;
+    e.preventDefault();
 
-    // remove zero-quantity items
-    const cleaned = items.filter(i => i.quantity > 0);
-    try {
-      await updateCart(cleaned);
-      await syncQtyDisplays();
-    } catch (err) {
-      console.error('Cart update failed', err);
-      alert('No se pudo actualizar el carrito');
-    }
+    const pid = btn.dataset.productId;
+    const input = getQtyInput(pid);
+    let qty = parseInt(input.value || '1', 10);
+
+    qty = Math.max(1, qty - 1);
+    input.value = qty;
   });
 
-  // initial sync on load
-  (function(){ syncQtyDisplays().catch(()=>{}); })();
+  // ---------------------------
+  // 2) Aumentar cantidad
+  // ---------------------------
+  document.addEventListener('click', (e) => {
+    const btn = e.target.closest('.btn-increase');
+    if (!btn) return;
+    e.preventDefault();
+
+    const pid = btn.dataset.productId;
+    const stock = parseInt(btn.dataset.stock || '9999', 10);
+    const input = getQtyInput(pid);
+    let qty = parseInt(input.value || '1', 10);
+
+    qty = Math.min(stock, qty + 1);
+    input.value = qty;
+  });
+
+  // ---------------------------
+  // 3) Agregar al carrito
+  // ---------------------------
+  document.addEventListener('click', async (e) => {
+    const btn = e.target.closest('.btn-add-cart');
+    if (!btn) return;
+    e.preventDefault();
+
+    const pid = btn.dataset.productId;
+    const stock = parseInt(btn.dataset.stock || '9999', 10);
+    const input = getQtyInput(pid);
+    let qty = parseInt(input.value || '1', 10);
+
+    if (qty > stock) qty = stock;
+    input.value = qty;
+
+    // Verificar sesión
+    if (!(await ensureSession())) {
+      return window.location.href = '/login';
+    }
+
+    const original = btn.innerHTML;
+    btn.disabled = true;
+    btn.innerHTML = '<i class="bi bi-check-lg"></i> Agregado';
+
+    try {
+       const response = await fetch('/api/carts/items', {
+        method: 'POST',
+        credentials: 'same-origin',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ product: pid, quantity: qty }),
+      });
+
+
+      window.location.href = '/cart';
+
+
+    } catch (err) {
+      console.error(err);
+      alert('Error al agregar al carrito');
+      btn.disabled = false;
+      btn.innerHTML = original;
+    }
+  });
 </script>

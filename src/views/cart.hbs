@@ -1,0 +1,209 @@
+{{!-- Cart view: shows current user's cart with Bootstrap styling --}}
+<div class="card shadow-sm">
+  <div class="card-body">
+    <h3 class="mb-3">Tu carrito</h3>
+    <div id="cartContainer">
+      <div class="text-center py-5 text-muted">Cargando carrito...</div>
+    </div>
+    <div class="mt-3 d-flex justify-content-between align-items-center">
+      <div>
+        <button id="clearCartBtn" class="btn btn-outline-danger btn-sm">Vaciar carrito</button>
+        <button id="volver-productos" class="btn btn-outline-secondary btn-sm">Volver a productos</button>
+      </div>
+      <div>
+        <strong>Total:</strong> <span id="cartTotal">$0.00</span>
+        <button id="checkoutBtn" class="btn btn-primary btn-sm ms-3">Ir a pagar</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<template id="cartItemTpl">
+  <div class="card mb-3">
+    <div class="row g-0 align-items-center">
+      <div class="col-md-3">
+        <img class="img-fluid item-thumb rounded-start" style="height:100px;object-fit:cover;width:100%;" alt="">
+      </div>
+      <div class="col-md-6">
+        <div class="card-body py-2">
+          <h6 class="card-title item-title mb-1"></h6>
+          <p class="card-text small item-code text-muted mb-1"></p>
+          <p class="card-text text-muted small item-price mb-0"></p>
+        </div>
+      </div>
+      <div class="col-md-3">
+        <div class="d-flex align-items-center justify-content-end pe-3">
+          <div class="input-group input-group-sm" style="width:120px;">
+            <button class="btn btn-outline-secondary btn-decrease-item" data-product-id="">−</button>
+            <input type="text" readonly class="form-control text-center item-qty" data-product-id="" value="1">
+            <button class="btn btn-outline-secondary btn-increase-item" data-product-id="">+</button>
+          </div>
+          <button class="btn btn-link text-danger btn-remove-item ms-2" data-product-id="">Eliminar</button>
+        </div>
+      </div>
+    </div>
+  </div>
+</template>
+
+<script>
+  // Utility to format currency
+  const fmt = (v) => new Intl.NumberFormat('es-AR', { style: 'currency', currency: 'ARS' }).format(v);
+
+  async function fetchJson(url, opts){
+    const r = await fetch(url, Object.assign({ credentials: 'same-origin' }, opts));
+    if (r.status === 401) {
+      // not authenticated — redirect to login
+      window.location.href = '/login';
+      throw new Error('Unauthorized');
+    }
+    if (!r.ok) throw new Error('Request failed ' + r.status);
+    return r.json();
+  }
+
+
+  // Load cart and render
+  async function loadCart(){
+    const container = document.getElementById('cartContainer');
+    container.innerHTML = '<div class="text-center py-5 text-muted">Cargando carrito...</div>';
+    try{
+      const cart = await fetchJson('/api/carts/me');
+      if (!cart || !Array.isArray(cart.products) || cart.products.length === 0){
+        container.innerHTML = '<div class="text-center py-5 text-muted">Tu carrito está vacío.</div>';
+        document.getElementById('cartTotal').textContent = fmt(0);
+        return;
+      }
+
+      const tplEl = document.getElementById('cartItemTpl');
+      container.innerHTML = '';
+      let total = 0;
+
+      for (const it of cart.products){
+        const prod = (it.product && typeof it.product === 'object') ? it.product : null;
+        const id = prod ? (prod._id || prod.id) : (it.product || '');
+        const title = prod ? prod.title : (it.title || 'Producto');
+        const price = prod ? (prod.price || 0) : (it.price || 0);
+        const code = prod ? (prod.code || '') : '';
+        const thumbnail = (prod && Array.isArray(prod.thumbnails) && prod.thumbnails[0]) ? prod.thumbnails[0] : 'https://via.placeholder.com/300x200?text=Sin+imagen';
+        const quantity = it.quantity || 0;
+
+        total += (price * quantity);
+
+        const clone = tplEl.content.cloneNode(true);
+        const img = clone.querySelector('.item-thumb');
+        const titleEl = clone.querySelector('.item-title');
+        const codeEl = clone.querySelector('.item-code');
+        const priceEl = clone.querySelector('.item-price');
+        const qtyInput = clone.querySelector('.item-qty');
+        const decBtn = clone.querySelector('.btn-decrease-item');
+        const incBtn = clone.querySelector('.btn-increase-item');
+        const remBtn = clone.querySelector('.btn-remove-item');
+
+        if (img) { img.src = thumbnail; img.alt = title; }
+        if (titleEl) titleEl.textContent = title;
+        if (codeEl) codeEl.textContent = 'Código: ' + code;
+        if (priceEl) priceEl.textContent = 'Precio unitario: ' + fmt(price);
+        if (qtyInput) { qtyInput.value = quantity; qtyInput.dataset.productId = id; }
+        if (decBtn) decBtn.dataset.productId = id;
+        if (incBtn) incBtn.dataset.productId = id;
+        if (remBtn) remBtn.dataset.productId = id;
+
+        container.appendChild(clone);
+      }
+
+      document.getElementById('cartTotal').textContent = fmt(total);
+    }catch(err){
+      console.error(err);
+      document.getElementById('cartContainer').innerHTML = '<div class="text-center py-5 text-danger">Error al cargar el carrito.</div>';
+      document.getElementById('cartTotal').textContent = fmt(0);
+    }
+  }
+
+  function escapeHtml(str){
+    if (!str) return '';
+    return String(str).replace(/[&<>"']/g, (s) => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[s]));
+  }
+
+  // Build items array from DOM for update
+  function collectItems(){
+    const items = [];
+    document.querySelectorAll('.item-qty').forEach(inp => {
+      const id = inp.dataset.productId;
+      const qty = parseInt(inp.value || '0', 10) || 0;
+      if (qty > 0) items.push({ product: id, quantity: qty });
+    });
+    return items;
+  }
+
+  // Update cart by posting items array
+  async function updateCartItems(items){
+    return fetchJson('/api/carts', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ items }) });
+  }
+
+  // Remove a single item by rebuilding cart without it
+  async function removeItem(productId){
+    const cart = await fetchJson('/api/carts/me');
+    const items = (cart.products || []).map(it => ({ product: (it.product && it.product._id) ? it.product._id : it.product, quantity: it.quantity })).filter(i=>i.product != productId);
+    await updateCartItems(items);
+    window.dispatchEvent(new Event('cartUpdated'));
+    await loadCart();
+  }
+
+  // Wire events
+  document.addEventListener('click', async (e) => {
+    const dec = e.target.closest('.btn-decrease-item');
+    const inc = e.target.closest('.btn-increase-item');
+    const rem = e.target.closest('.btn-remove-item');
+    const volver = e.target.closest('#volver-productos');
+    if (dec || inc || rem || volver) e.preventDefault();
+
+    if (dec){
+      const id = dec.dataset.productId;
+      const inp = document.querySelector(`.item-qty[data-product-id="${id}"]`);
+      if (!inp) return;
+      let q = Math.max(1, (parseInt(inp.value||'1',10)||1) - 1);
+      inp.value = q;
+      // apply update
+      const items = collectItems(); await updateCartItems(items); window.dispatchEvent(new Event('cartUpdated'));
+    }
+    if (inc){
+      const id = inc.dataset.productId;
+      const inp = document.querySelector(`.item-qty[data-product-id="${id}"]`);
+      if (!inp) return;
+      let q = (parseInt(inp.value||'1',10)||1) + 1;
+      inp.value = q;
+      const items = collectItems(); await updateCartItems(items); window.dispatchEvent(new Event('cartUpdated'));
+    }
+    if (rem){
+      const id = rem.dataset.productId;
+      if (!confirm('¿Eliminar este producto del carrito?')) return;
+      await removeItem(id);
+    }
+    if (volver){
+      window.location.href = '/panel';
+    }
+  });
+
+  // initial load & wire some DOM events after content is ready
+  document.addEventListener('DOMContentLoaded', () => {
+    loadCart();
+    window.addEventListener('cartUpdated', loadCart);
+
+    // clear cart
+    const clearBtn = document.getElementById('clearCartBtn');
+    if (clearBtn) clearBtn.addEventListener('click', async () => {
+      if (!confirm('¿Vaciar todo el carrito?')) return;
+      try{
+        await fetch('/api/carts/me', { method: 'DELETE', credentials: 'same-origin' });
+        window.dispatchEvent(new Event('cartUpdated'));
+        await loadCart();
+      }catch(e){ console.error(e); alert('Error vaciando el carrito'); }
+    });
+
+    // checkout stub (redirect or further logic)
+    const checkoutBtn = document.getElementById('checkoutBtn');
+    if (checkoutBtn) checkoutBtn.addEventListener('click', async () => {
+      // For now just redirect to a placeholder route; implement real checkout later
+      window.location.href = '/checkout' ;
+    });
+  });
+</script>

@@ -12,9 +12,6 @@ class ProductRepository {
   }
 
   async findAll(filter = {}) {
-    // Support optional pagination/sorting via second parameter
-    // findAll(filter, options)
-    // options: { skip, limit, sort }
     return Product.find(filter).lean();
   }
 

@@ -21,13 +21,23 @@ class CartRepository {
   async addItem(userId, productId, quantity = 1) {
     const cart = await Cart.findOne({ user: userId });
     if (!cart) {
-      return this.createForUser(userId, [{ product: productId, quantity }]);
+      // ensure not exceed stock on create
+      const prod = await Product.findById(productId).lean();
+      const qty = prod && typeof prod.stock === 'number' ? Math.min(quantity, prod.stock) : quantity;
+      return this.createForUser(userId, [{ product: productId, quantity: qty }]);
     }
     const idx = cart.products.findIndex(p => p.product.toString() === productId.toString());
     if (idx >= 0) {
-      cart.products[idx].quantity += quantity;
+      // enforce stock limit
+      const prod = await Product.findById(productId).lean();
+      const stock = prod && typeof prod.stock === 'number' ? prod.stock : null;
+      const newQty = cart.products[idx].quantity + quantity;
+      cart.products[idx].quantity = stock !== null ? Math.min(newQty, stock) : newQty;
     } else {
-      cart.products.push({ product: productId, quantity });
+      // enforce stock when adding
+      const prod = await Product.findById(productId).lean();
+      const qty = prod && typeof prod.stock === 'number' ? Math.min(quantity, prod.stock) : quantity;
+      cart.products.push({ product: productId, quantity: qty });
     }
     await cart.save();
     return cart.toObject();

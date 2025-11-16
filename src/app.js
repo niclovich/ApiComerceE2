@@ -7,6 +7,7 @@ const sessionsRouter = require('./routes/sessions');
 const usersRouter = require('./routes/users');
 const productsRouter = require('./routes/products');
 const cartsRouter = require('./routes/carts');
+const ordersRouter = require('./routes/orders');
 require('./config/passport');
 const path = require('path');
 const viewsRouter = require('./routes/views');
@@ -45,6 +46,7 @@ app.use('/api/sessions', sessionsRouter);
 app.use('/api/users', usersRouter);
 app.use('/api/products', productsRouter);
 app.use('/api/carts', cartsRouter);
+app.use('/api/orders', ordersRouter);
 app.use('/', viewsRouter);
 
 app.get('/api', (req, res) => res.json({ ok: true, message: 'API Ecommerce' }));
