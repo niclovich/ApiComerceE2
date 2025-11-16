@@ -5,10 +5,14 @@
       <p class="lead">Bienvenido <strong>{{user.first_name}} {{user.last_name}}</strong></p>
       <p class="mb-1">Email: <code>{{user.email}}</code></p>
       <p class="mb-3">Rol: <span class="badge bg-secondary">{{user.role}}</span></p>
-      <div class="d-flex gap-2">
-        <a href="/products" class="btn btn-outline-primary">Ver productos</a>
+      <div class="d-flex gap-2 mb-3">
+        {{#if (eq user.role 'vendor')}}
+          <a href="/products/create" class="btn btn-success">Crear producto</a>
+        {{/if}}
         <button id="logout" class="btn btn-danger">Cerrar sesión</button>
       </div>
+
+      {{> productList }}
     {{else}}
       <p>No estás autenticado. <a href="/login">Iniciar sesión</a></p>
     {{/if}}

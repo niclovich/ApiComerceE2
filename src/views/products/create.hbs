@@ -1,0 +1,76 @@
+<div class="card shadow-sm">
+  <div class="card-body">
+    <h4 class="card-title mb-3">Crear producto</h4>
+    <div id="alertPlaceholder"></div>
+    <form id="productForm" autocomplete="off">
+      <div class="mb-3">
+        <label class="form-label">Título</label>
+        <input name="title" class="form-control" required />
+      </div>
+      <div class="mb-3">
+        <label class="form-label">Descripción</label>
+        <textarea name="description" class="form-control"></textarea>
+      </div>
+      <div class="row g-2">
+        <div class="col-md-4">
+          <label class="form-label">Precio</label>
+          <input name="price" type="number" min="0" step="0.01" class="form-control" required />
+        </div>
+        <div class="col-md-4">
+          <label class="form-label">Stock</label>
+          <input name="stock" type="number" min="0" class="form-control" />
+        </div>
+        <div class="col-md-4">
+          <label class="form-label">Código</label>
+          <input name="code" class="form-control" />
+        </div>
+      </div>
+      <div class="mb-3 mt-3">
+        <label class="form-label">Categoría</label>
+        <input name="category" class="form-control" />
+      </div>
+      <div class="mb-3">
+        <label class="form-label">Thumbnails (URLs, separadas por coma)</label>
+        <input name="thumbnails" class="form-control" />
+      </div>
+      <div class="mb-3 form-check">
+        <input type="checkbox" name="status" class="form-check-input" id="statusCheck" checked />
+        <label class="form-check-label" for="statusCheck">Activo</label>
+      </div>
+      <div class="d-grid">
+        <button class="btn btn-success">Crear</button>
+      </div>
+    </form>
+    <hr />
+    <pre id="output" class="small bg-light p-2 rounded">Esperando...</pre>
+  </div>
+</div>
+
+<script>
+  const form = document.getElementById('productForm');
+  const out = document.getElementById('output');
+  const alertPlaceholder = document.getElementById('alertPlaceholder');
+  function showAlert(msg,type='info'){ alertPlaceholder.innerHTML = `<div class="alert alert-${type}">${msg}</div>` }
+
+  form.addEventListener('submit', async (e)=>{
+    e.preventDefault();
+    showAlert('Enviando...', 'info');
+    out.textContent = 'Enviando...';
+    const fd = new FormData(form);
+    const data = Object.fromEntries(fd.entries());
+    if (data.thumbnails) data.thumbnails = data.thumbnails.split(',').map(s=>s.trim()).filter(Boolean);
+    data.price = Number(data.price);
+    data.stock = data.stock ? Number(data.stock) : 0;
+    data.status = form.status.checked;
+    try{
+      const res = await fetch('/api/products', { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify(data), credentials: 'same-origin' });
+      const ct = res.headers.get('content-type')||'';
+      const body = ct.includes('application/json') ? await res.json() : await res.text();
+      if (!res.ok){ showAlert(body.error || JSON.stringify(body), 'danger'); out.textContent = JSON.stringify(body,null,2); return }
+      showAlert('Producto creado', 'success');
+      out.textContent = JSON.stringify(body,null,2);
+      // redirect to panel or product list
+      setTimeout(()=> window.location.href = '/panel', 800);
+    }catch(err){ showAlert(err.message,'danger'); out.textContent = err.message }
+  });
+</script>
