@@ -12,7 +12,7 @@ class OrderRepository {
   }
 
   async listByBuyer(buyerId, filter = {}) {
-    return Order.find(Object.assign({ buyer: buyerId }, filter)).lean();
+    return Order.find(Object.assign({ purchaser: buyerId }, filter)).lean();
   }
 }
 

@@ -47,7 +47,7 @@
       container.innerHTML = '';
       const header = document.createElement('div');
       header.className = 'mb-3';
-      header.innerHTML = `<div class="d-flex justify-content-between align-items-center"><div><h5>Orden ${order._id}</h5><div class="small text-muted">Estado: ${order.status}</div></div><div class="text-end"><div class="fw-semibold">Total: ${fmt(order.total || 0)}</div><div class="small text-muted">${new Date(order.purchaseDate || order.createdAt || order.updatedAt).toLocaleString()}</div></div></div>`;
+      header.innerHTML = `<div class="d-flex justify-content-between align-items-center"><div><h5>Orden ${order._id}</h5><div class="small text-muted">Código: ${order.code || ''}</div></div><div class="text-end"><div class="fw-semibold">Total: ${fmt(order.amount || 0)}</div><div class="small text-muted">${new Date(order.purchase_datetime || order.createdAt || order.updatedAt).toLocaleString()}</div></div></div>`;
       container.appendChild(header);
 
       const tpl = document.getElementById('orderItemTpl');

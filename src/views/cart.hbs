@@ -62,11 +62,13 @@
 
 
   // Load cart and render
+  let currentCartId = null;
   async function loadCart(){
     const container = document.getElementById('cartContainer');
     container.innerHTML = '<div class="text-center py-5 text-muted">Cargando carrito...</div>';
     try{
       const cart = await fetchJson('/api/carts/me');
+      currentCartId = cart && (cart._id || cart.id) ? (cart._id || cart.id) : null;
       if (!cart || !Array.isArray(cart.products) || cart.products.length === 0){
         container.innerHTML = '<div class="text-center py-5 text-muted">Tu carrito está vacío.</div>';
         document.getElementById('cartTotal').textContent = fmt(0);
@@ -134,16 +136,16 @@
     return items;
   }
 
-  // Update cart by posting items array
+  // Update cart by replacing products (PUT /api/carts/:cid)
   async function updateCartItems(items){
-    return fetchJson('/api/carts', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ items }) });
+    if (!currentCartId) throw new Error('Cart id unknown');
+    return fetchJson(`/api/carts/${currentCartId}`, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ items }) });
   }
 
-  // Remove a single item by rebuilding cart without it
+  // Remove a single item via DELETE /api/carts/:cid/products/:pid
   async function removeItem(productId){
-    const cart = await fetchJson('/api/carts/me');
-    const items = (cart.products || []).map(it => ({ product: (it.product && it.product._id) ? it.product._id : it.product, quantity: it.quantity })).filter(i=>i.product != productId);
-    await updateCartItems(items);
+    if (!currentCartId) throw new Error('Cart id unknown');
+    await fetchJson(`/api/carts/${currentCartId}/products/${productId}`, { method: 'DELETE' });
     window.dispatchEvent(new Event('cartUpdated'));
     await loadCart();
   }
@@ -162,8 +164,10 @@
       if (!inp) return;
       let q = Math.max(1, (parseInt(inp.value||'1',10)||1) - 1);
       inp.value = q;
-      // apply update
-      const items = collectItems(); await updateCartItems(items); window.dispatchEvent(new Event('cartUpdated'));
+      // apply partial update (PUT quantity)
+      if (!currentCartId) return;
+      await fetchJson(`/api/carts/${currentCartId}/products/${id}`, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ quantity: q }) });
+      window.dispatchEvent(new Event('cartUpdated'));
     }
     if (inc){
       const id = inc.dataset.productId;
@@ -171,7 +175,9 @@
       if (!inp) return;
       let q = (parseInt(inp.value||'1',10)||1) + 1;
       inp.value = q;
-      const items = collectItems(); await updateCartItems(items); window.dispatchEvent(new Event('cartUpdated'));
+      if (!currentCartId) return;
+      await fetchJson(`/api/carts/${currentCartId}/products/${id}`, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ quantity: q }) });
+      window.dispatchEvent(new Event('cartUpdated'));
     }
     if (rem){
       const id = rem.dataset.productId;
@@ -193,7 +199,8 @@
     if (clearBtn) clearBtn.addEventListener('click', async () => {
       if (!confirm('¿Vaciar todo el carrito?')) return;
       try{
-        await fetch('/api/carts/me', { method: 'DELETE', credentials: 'same-origin' });
+        if (!currentCartId) throw new Error('Cart id unknown');
+        await fetchJson(`/api/carts/${currentCartId}`, { method: 'DELETE' });
         window.dispatchEvent(new Event('cartUpdated'));
         await loadCart();
       }catch(e){ console.error(e); alert('Error vaciando el carrito'); }

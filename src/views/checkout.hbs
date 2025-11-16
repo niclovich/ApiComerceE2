@@ -48,12 +48,15 @@
     return r.json();
   }
 
+  let currentCartId = null;
+
   async function loadSummary(){
     const container = document.getElementById('checkoutContainer');
     const tpl = document.getElementById('checkoutItemTpl');
     container.innerHTML = '<div class="text-center py-5 text-muted">Cargando resumen...</div>';
     try{
       const cart = await fetchJson('/api/carts/me');
+      currentCartId = cart && cart._id ? cart._id : null;
       if (!cart || !Array.isArray(cart.products) || cart.products.length === 0){
         container.innerHTML = '<div class="text-center py-5 text-muted">Tu carrito está vacío.</div>';
         document.getElementById('checkoutTotal').textContent = fmt(0);
@@ -95,37 +98,42 @@
       const btn = document.getElementById('confirmPurchaseBtn');
       btn.disabled = true; btn.textContent = 'Procesando...';
       try{
-        const res = await fetchJson('/api/carts/checkout', { method: 'POST', headers: { 'Content-Type': 'application/json' } });
-        const t = res.ticket || res;
+        if (!currentCartId) throw new Error('Carrito no identificado');
+        const res = await fetchJson(`/api/carts/${currentCartId}/purchase`, { method: 'POST', headers: { 'Content-Type': 'application/json' } });
         const out = document.getElementById('checkoutResult');
         out.innerHTML = '';
         const h = document.createElement('div');
         h.className = 'mt-3';
         h.innerHTML = '<h5>Resultado de la compra</h5>';
-        const purchased = t.purchased || [];
-        const failed = t.failed || [];
-        h.innerHTML += `<p><strong>Total pagado:</strong> ${fmt(t.total || 0)}</p>`;
-        if (purchased.length) {
-          const ul = document.createElement('div'); ul.className = 'mb-2';
-          ul.innerHTML = '<h6>Productos comprados</h6>' + purchased.map(p => `<div class="small">${p.quantity} x ${p.title} — ${fmt(p.subtotal)}</div>`).join('');
-          h.appendChild(ul);
+        const order = res.order;
+        const notProcessed = res.products_not_processed || [];
+        h.innerHTML += `<p><strong>Total procesado:</strong> ${fmt(order ? order.amount : 0)}</p>`;
+        if (order) {
+          const info = document.createElement('div');
+          info.className = 'mb-2';
+          info.innerHTML = `<div class="small">Código: ${order.code || ''}</div>`;
+          h.appendChild(info);
         }
-        if (failed.length){
+        if (notProcessed.length) {
           const f = document.createElement('div'); f.className = 'mt-2 text-warning';
-          f.innerHTML = '<h6>Problemas</h6>' + failed.map(x => `<div class="small">${x.reason} — ${x.product} (solicitado: ${x.requested}, disponible: ${x.available || 0}${x.purchased ? ', comprado: ' + x.purchased : ''})</div>`).join('');
+          f.innerHTML = '<h6>Productos no procesados</h6>' + notProcessed.map(x => `<div class="small">${x}</div>`).join('');
           h.appendChild(f);
+        } else {
+          const s = document.createElement('div'); s.className = 'mt-2 text-success';
+          s.innerHTML = '<div class="small">Todos los productos fueron procesados correctamente.</div>';
+          h.appendChild(s);
         }
 
-        if (t.order && t.order._id) {
+        if (order && order._id) {
           const link = document.createElement('div');
           link.className = 'mt-3';
-          link.innerHTML = `<a href="/orders/${t.order._id}" class="btn btn-sm btn-outline-primary">Ver orden</a> <a href="/panel" class="btn btn-sm btn-outline-secondary ms-2">Volver al panel</a>`;
+          link.innerHTML = `<a href="/orders/${order._id}" class="btn btn-sm btn-outline-primary">Ver orden</a> <a href="/panel" class="btn btn-sm btn-outline-secondary ms-2">Volver al panel</a>`;
           h.appendChild(link);
         }
 
         out.appendChild(h);
-        // reload summary (cart should be empty now)
-        loadSummary();
+        // reload summary (cart updated to remaining items)
+        await loadSummary();
       }catch(err){
         console.error(err);
         alert('Error procesando la compra');

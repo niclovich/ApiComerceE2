@@ -176,16 +176,21 @@
     btn.innerHTML = '<i class="bi bi-check-lg"></i> Agregado';
 
     try {
-       const response = await fetch('/api/carts/items', {
+      // get current user's cart to obtain cart id
+      const cartRes = await fetch('/api/carts/me', { credentials: 'same-origin' });
+      if (!cartRes.ok) throw new Error('No cart');
+      const cart = await cartRes.json();
+      const cid = cart && (cart._id || cart.id);
+      if (!cid) throw new Error('Cart id unknown');
+
+      const response = await fetch(`/api/carts/${cid}/product/${pid}`, {
         method: 'POST',
         credentials: 'same-origin',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ product: pid, quantity: qty }),
+        body: JSON.stringify({ quantity: qty }),
       });
 
-
       window.location.href = '/cart';
-
 
     } catch (err) {
       console.error(err);

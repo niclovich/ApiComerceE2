@@ -46,9 +46,9 @@
       const tpl = document.getElementById('orderCardTpl');
       for (const o of orders){
         const clone = tpl.content.cloneNode(true);
-        clone.querySelector('.order-title').textContent = `Orden ${o._id} — ${o.status}`;
-        clone.querySelector('.order-meta').textContent = new Date(o.purchaseDate || o.createdAt || o.updatedAt).toLocaleString();
-        clone.querySelector('.order-total').textContent = fmt(o.total || 0);
+        clone.querySelector('.order-title').textContent = `Orden ${o._id} — ${o.code || ''}`;
+        clone.querySelector('.order-meta').textContent = new Date(o.purchase_datetime || o.createdAt || o.updatedAt).toLocaleString();
+        clone.querySelector('.order-total').textContent = fmt(o.amount || 0);
         const btn = clone.querySelector('.view-order');
         btn.href = `/orders/${o._id}`;
         container.appendChild(clone);
