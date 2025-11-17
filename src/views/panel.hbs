@@ -5,33 +5,49 @@
       <div class="card shadow-sm">
         <div class="card-body text-center">
           <div class="mb-3">
-            <div class="rounded-circle bg-light d-inline-flex align-items-center justify-content-center" style="width:84px;height:84px;font-size:32px;color:#6c757d">{{#if user.first_name}}{{user.first_name.[0]}}{{else}}U{{/if}}</div>
+            <div
+              class="rounded-circle bg-light d-inline-flex align-items-center justify-content-center"
+              style="width:84px;height:84px;font-size:32px;color:#6c757d"
+            >{{#if user.first_name}}{{user.first_name}}{{else}}U{{/if}}</div>
           </div>
-          <h5 class="card-title mb-1">{{#if user}}{{user.first_name}} {{user.last_name}}{{/if}}</h5>
+          <h5 class="card-title mb-1">{{#if user}}{{user.first_name}}
+              {{user.last_name}}{{/if}}</h5>
           <p class="text-muted small mb-2">{{#if user}}{{user.email}}{{/if}}</p>
-          <p class="mb-2"><span class="badge bg-primary text-white">{{#if user}}{{user.role}}{{/if}}</span></p>
+          <p class="mb-2"><span class="badge bg-primary text-white">{{#if
+                user
+              }}{{user.role}}{{/if}}</span></p>
 
           <div class="d-grid gap-2">
-            {{#if (eq user.role 'vendor')}}
-              <a href="/products/create" class="btn btn-outline-success btn-sm">Crear producto</a>
+            {{#if (eq user.role "vendor")}}
+              <a
+                href="/products/create"
+                class="btn btn-outline-success btn-sm"
+              >Crear producto</a>
             {{/if}}
-              {{#if (eq user.role 'user')}}
-            <a href="/cart" class="btn btn-outline-secondary btn-sm">Ver carrito</a>
+            {{#if (eq user.role "user")}}
+              <a href="/cart" class="btn btn-outline-secondary btn-sm">Ver
+                carrito</a>
+              <a href="/orders" class="btn btn-outline-info btn-sm">Mis órdenes</a>
+
             {{/if}}
-            
-            <a href="/orders" class="btn btn-outline-info btn-sm">Mis órdenes</a>
-            <button id="logout" class="btn btn-danger btn-sm">Cerrar sesión</button>
+
           </div>
         </div>
       </div>
+      <p>DEBUG ROLE: [{{user.role}}]</p>
 
       <div class="card mt-3">
         <div class="card-body">
           <h6 class="mb-2">Resumen</h6>
-          <p class="small text-muted mb-1">Acciones rápidas y estado de tu cuenta.</p>
+          <p class="small text-muted mb-1">Acciones rápidas y estado de tu
+            cuenta.</p>
           <ul class="list-unstyled small mb-0">
-            <li><strong>Productos:</strong> <span id="panelProductsCount">—</span></li>
-            <li><strong>Carrito:</strong> <span id="panelCartCount">—</span></li>
+            <li><strong>Productos:</strong>
+              <span id="panelProductsCount">—</span>
+            </li>
+            <li><strong>Carrito:</strong>
+              <span id="panelCartCount">—</span>
+            </li>
           </ul>
         </div>
       </div>
@@ -44,48 +60,152 @@
           <h3 class="mb-0">Productos</h3>
           <small class="text-muted">Explora y agrega al carrito</small>
         </div>
-  
+
       </div>
 
       <div id="productListArea">
-        {{> productList }}
+        <p>DEBUG ROLE: [{{user.role}}]</p>
+
+        {{#if products}}
+          {{#if (eq user.role "vendor")}}
+            <h5>Mis productos</h5>
+          {{else}}
+            <h5>Productos disponibles</h5>
+          {{/if}}
+
+          {{#if products.length}}
+            <div class="row g-3 mb-3">
+              {{#each products}}
+                <div class="col-12 mb-3">
+                  <div class="card shadow-sm border-0 rounded-3 h-100">
+                    <div class="row g-0">
+
+                      <!-- Imagen -->
+                      <div class="col-md-4">
+                        <img
+                          src="https://http2.mlstatic.com/D_NQ_NP_2X_673802-MLA84553858545_052025-F.webp"
+                          class="img-fluid rounded-start"
+                          alt="{{this.title}}"
+                          style="height:230px;width:100%;object-fit:cover;"
+                        />
+                      </div>
+
+                      <!-- Info -->
+                      <div class="col-md-8">
+                        <div class="card-body d-flex flex-column">
+
+                          <div
+                            class="d-flex justify-content-between align-items-start"
+                          >
+                            <h5 class="fw-bold text-dark">{{this.title}}</h5>
+                            <span
+                              class="badge bg-success fs-6"
+                            >${{this.price}}</span>
+                          </div>
+
+                          <p class="card-text small text-muted mb-1">
+                            <strong>Código:</strong>
+                            {{this.code}}
+                            &nbsp;·&nbsp;
+                            <strong>Stock:</strong>
+                            {{this.stock}}
+                          </p>
+
+                          <p class="text-muted mb-3">{{this.description}}</p>
+
+                          <div
+                            class="mt-auto d-flex justify-content-between align-items-center"
+                          >
+
+                            <div
+                              class="input-group input-group-sm quantity-box shadow-sm"
+                              style="width:130px;"
+                            >
+                              <button
+                                type="button"
+                                class="btn btn-outline-secondary btn-decrease"
+                                data-product-id="{{this._id}}"
+                                data-stock="{{this.stock}}"
+                              >
+                                <i class="bi bi-dash-lg">-</i>
+                              </button>
+
+                              <input
+                                type="text"
+                                readonly
+                                class="form-control text-center product-qty fw-semibold"
+                                data-product-id="{{this._id}}"
+                                value="1"
+                              />
+
+                              <button
+                                type="button"
+                                class="btn btn-outline-secondary btn-increase"
+                                data-product-id="{{this._id}}"
+                                data-stock="{{this.stock}}"
+                              >
+                                <i class="bi bi-plus-lg">+</i>
+                              </button>
+                            </div>
+
+                            {{#if (eq @root.user.role "user")}}
+                              <button
+                                type="button"
+                                class="btn btn-primary btn-sm px-3 btn-add-cart shadow-sm"
+                                data-product-id="{{this._id}}"
+                                data-stock="{{this.stock}}"
+                              >
+                                <i class="bi bi-cart-plus"></i>
+                                Agregar
+                              </button>
+                     
+                            {{/if}}
+
+                            <a
+                              href="/products/{{this._id}}"
+                              class="btn btn-outline-primary btn-sm px-3 shadow-sm"
+                            >
+                              Ver
+                            </a>
+
+                          </div><!-- /footer -->
+                        </div><!-- /card-body -->
+                      </div>
+
+                    </div>
+                  </div>
+                </div>
+
+              {{/each}}
+            </div>
+          {{else}}
+            {{#if (eq user.role "vendor")}}
+              <p class="text-muted">No tiene productos creados aún.</p>
+            {{else}}
+              <p class="text-muted">No hay productos disponibles en este
+                momento.</p>
+            {{/if}}
+          {{/if}}
+        {{/if}}
+
       </div>
     </main>
   </div>
 </div>
 
 <script>
-  // Logout handler
-  const logoutBtn = document.getElementById('logout');
-  if (logoutBtn) logoutBtn.addEventListener('click', async () => {
-    await fetch('/api/sessions/logout', { method: 'POST', credentials: 'same-origin' });
-    window.location.href = '/';
-  });
 
-  // Update quick counters in the sidebar
-  async function updatePanelCounts(){
-    try{
-      const res = await fetch('/api/products', { credentials: 'same-origin' });
-      if (res.ok){
-        const list = await res.json();
-        const countEl = document.getElementById('panelProductsCount');
-        if (countEl) countEl.textContent = Array.isArray(list) ? list.length : '-';
-      }
-    }catch(e){ console.warn(e); }
-
-    try{
-      const cartRes = await fetch('/api/carts/me', { credentials: 'same-origin' });
-      if (cartRes.ok){
-        const cart = await cartRes.json();
-        const cartEl = document.getElementById('panelCartCount');
-        const qty = (cart && Array.isArray(cart.products)) ? cart.products.reduce((s,i)=>s + (i.quantity||0),0) : 0;
-        if (cartEl) cartEl.textContent = qty;
-      }
-    }catch(e){ console.warn(e); }
-  }
-
-  document.addEventListener('DOMContentLoaded', () => {
-    updatePanelCounts();
-    window.addEventListener('cartUpdated', updatePanelCounts);
-  });
+  async function updatePanelCounts() { try { const res = await
+  fetch('/api/products', { credentials: 'same-origin' }); if (res.ok) { const
+  list = await res.json(); const countEl =
+  document.getElementById('panelProductsCount'); if (countEl)
+  countEl.textContent = Array.isArray(list) ? list.length : '-'; } } catch (e) {
+  console.warn(e); } try { const cartRes = await fetch('/api/carts/me', {
+  credentials: 'same-origin' }); if (cartRes.ok) { const cart = await
+  cartRes.json(); const cartEl = document.getElementById('panelCartCount');
+  const qty = (cart && Array.isArray(cart.products)) ? cart.products.reduce((s,
+  i) => s + (i.quantity || 0), 0) : 0; if (cartEl) cartEl.textContent = qty; } }
+  catch (e) { console.warn(e); } } document.addEventListener('DOMContentLoaded',
+  () => { updatePanelCounts(); window.addEventListener('cartUpdated',
+  updatePanelCounts); });
 </script>

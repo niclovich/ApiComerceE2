@@ -90,5 +90,105 @@
         }
       });
     </script>
+    <!-- product-list behavior (moved from partial) -->
+    <script>
+      (function(){
+        'use strict';
+
+        function getQtyInput(pid) {
+          return document.querySelector(`.product-qty[data-product-id="${pid}"]`);
+        }
+
+        async function ensureSession() {
+          try {
+            const cur = await fetch('/api/sessions/current', { credentials: 'same-origin' });
+            return cur.ok;
+          } catch (e) {
+            return false;
+          }
+        }
+
+        // Decrease quantity
+        document.addEventListener('click', (e) => {
+          const btn = e.target.closest('.btn-decrease');
+          if (!btn) return;
+          e.preventDefault();
+          const pid = btn.dataset.productId;
+          const input = getQtyInput(pid);
+          if (!input) return;
+          let qty = parseInt(input.value || '1', 10);
+          qty = Math.max(1, qty - 1);
+          input.value = qty;
+        });
+
+        // Increase quantity
+        document.addEventListener('click', (e) => {
+          const btn = e.target.closest('.btn-increase');
+          if (!btn) return;
+          e.preventDefault();
+          const pid = btn.dataset.productId;
+          const stock = parseInt(btn.dataset.stock || '9999', 10);
+          const input = getQtyInput(pid);
+          if (!input) return;
+          let qty = parseInt(input.value || '1', 10);
+          qty = Math.min(stock, qty + 1);
+          input.value = qty;
+        });
+
+        // Add to cart
+        document.addEventListener('click', async (e) => {
+          const btn = e.target.closest('.btn-add-cart');
+          if (!btn) return;
+          e.preventDefault();
+
+          const pid = btn.dataset.productId;
+          const stock = parseInt(btn.dataset.stock || '9999', 10);
+          const input = getQtyInput(pid);
+          if (!input) return;
+          let qty = parseInt(input.value || '1', 10);
+          if (qty > stock) qty = stock;
+          input.value = qty;
+
+          // Verify session
+          if (!(await ensureSession())) {
+            window.location.href = '/login';
+            return;
+          }
+
+          const original = btn.innerHTML;
+          btn.disabled = true;
+          btn.innerHTML = '<i class="bi bi-check-lg"></i> Agregado';
+
+          try {
+            // Get current user's cart to obtain cart id
+            const cartRes = await fetch('/api/carts/me', { credentials: 'same-origin' });
+            if (!cartRes.ok) throw new Error('No cart');
+            const cart = await cartRes.json();
+            const cid = cart && (cart._id || cart.id);
+            if (!cid) throw new Error('Cart id unknown');
+
+            const response = await fetch(`/api/carts/${cid}/product/${pid}`, {
+              method: 'POST',
+              credentials: 'same-origin',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ quantity: qty }),
+            });
+
+            if (!response.ok) throw new Error('Add to cart failed');
+
+            // Notify nav and redirect to cart
+            window.dispatchEvent(new CustomEvent('cartUpdated'));
+            window.location.href = '/cart';
+
+          } catch (err) {
+            console.error(err);
+            alert('Error al agregar al carrito');
+            btn.disabled = false;
+            btn.innerHTML = original;
+          }
+        });
+
+      })();
+    </script>
   </body>
 </html>

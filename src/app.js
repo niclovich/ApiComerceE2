@@ -24,6 +24,14 @@ app.engine('hbs', engine({
 	helpers: {
 		eq: (a, b) => a == b,
 		neq: (a, b) => a != b,
+		// case-insensitive role check helper: roleIs userObject 'roleName'
+		roleIs: (userObj, roleName) => {
+			try {
+				if (!userObj) return false;
+				const r = (userObj && userObj.role) ? String(userObj.role) : String(userObj);
+				return String(r).toLowerCase() === String(roleName).toLowerCase();
+			} catch (e) { return false; }
+		},
 		and: function() { return Array.prototype.slice.call(arguments,0,-1).every(Boolean); },
 		or: function() { return Array.prototype.slice.call(arguments,0,-1).some(Boolean); }
 	}

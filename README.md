@@ -122,22 +122,3 @@ curl -X POST -H "Content-Type: application/json" -d '{"email":"user@example.com"
 curl -X POST -H "Content-Type: application/json" --cookie "token=<JWT_COOKIE>" http://localhost:3000/api/carts/<CART_ID>/purchase
 ```
 
-**Desarrollo y debugging**
-- Si los correos fallan y ves un error tipo DNS (`ENOTFOUND smtp.example.com`) revisa tus variables `SMTP_*` o deja las vacías para usar Ethereal preview.
-- Revisa logs en la terminal para ver detalles de envíos de mail y errores de rutas.
-
-**Contribuciones / próximas mejoras recomendadas**
-- Guardar hash del token de restablecimiento en DB (mejor seguridad) en lugar del token en texto plano.
-- Añadir rate-limiting al endpoint `POST /api/sessions/forgot` para prevenir abuso.
-- Invalidar sesiones activas tras restablecer la contraseña (si aplica).
-- Agregar tests automatizados para endpoints críticos (auth, purchase flow).
-
----
-
-Si quieres, puedo:
-- Generar OpenAPI (Swagger) a partir de estas rutas.
-- Añadir una sección de ejemplos más detallados para cada endpoint.
-- Añadir `README` en español/inglés separado o ampliar con diagramas.
-
----
-Archivo generado automáticamente con la información del código actual.
