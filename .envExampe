@@ -26,9 +26,9 @@ JWT_EXPIRES_IN=1h
 # Bcrypt salt rounds (optional)
 SALT_ROUNDS=10
 
-# Optional extras
-# LOG_LEVEL=info
-# EMAIL_HOST=smtp.example.com
-# EMAIL_PORT=587
-# EMAIL_USER=me@example.com
-# EMAIL_PASS=supersecret
+SMTP_HOST=smtp.gmail.com
+SMTP_PORT=
+SMTP_USER=
+SMTP_PASS=
+SMTP_SECURE=false
+FROM_EMAIL='no-reply@yourdomain.com'
