@@ -1,5 +1,6 @@
 const express = require('express');
 const ensureAuth = require('../middleware/ensureAuth');
+const ensureRole = require('../middleware/ensureRole');
 const controller = require('../controllers/product.controller');
 
 const router = express.Router();
@@ -10,13 +11,13 @@ router.get('/', controller.listProducts);
 // Public: get product by id
 router.get('/:id', controller.getProduct);
 
-// Protected: create product
-router.post('/', ensureAuth, controller.createProduct);
+// Protected: create product (only vendors)
+router.post('/', ensureAuth, ensureRole('vendor'), controller.createProduct);
 
-// Protected: update product
-router.put('/:id', ensureAuth, controller.updateProduct);
+// Protected: update product (only vendors)
+router.put('/:id', ensureAuth, ensureRole('vendor'), controller.updateProduct);
 
-// Protected: delete product
-router.delete('/:id', ensureAuth, controller.deleteProduct);
+// Protected: delete product (only vendors)
+router.delete('/:id', ensureAuth, ensureRole('vendor'), controller.deleteProduct);
 
 module.exports = router;

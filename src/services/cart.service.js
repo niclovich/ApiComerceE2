@@ -2,6 +2,7 @@ const cartRepo = require("../repositories/cart.repository");
 const productRepo = require("../repositories/product.repository");
 const userRepo = require("../repositories/user.repository");
 const orderRepo = require("../repositories/order.repository");
+const mailer = require('../lib/mailer');
 
 class CartService {
   async createCartForUser(userId, items = []) {
@@ -45,122 +46,8 @@ class CartService {
     return this.getCartForUser(userId, true);
   }
 
-  async finalizePurchase(userId) {
-    const cart = await cartRepo.findByUser(userId);
-    if (!cart || !Array.isArray(cart.products) || cart.products.length === 0) {
-      return {
-        success: false,
-        reason: "Cart is empty",
-        purchased: [],
-        failed: [],
-        total: 0,
-        order: null,
-      };
-    }
 
-    const items = []; // buffer con { prod, requested }
-    const failed = [];
-    let hasError = false;
 
-    // ---------- PRIMER PASO: validar y preparar ----------
-    for (const it of cart.products) {
-      const prodId = it.product && it.product._id ? it.product._id : it.product;
-      const prod = await productRepo.findById(prodId);
-      const requested = Number(it.quantity) || 0;
-
-      if (!prod) {
-        hasError = true;
-        failed.push({
-          product: prodId,
-          requested,
-          reason: "Product not found",
-        });
-        continue;
-      }
-
-      const available = typeof prod.stock === "number" ? prod.stock : 0;
-
-      if (available < requested) {
-        hasError = true;
-        failed.push({
-          product: prod._id,
-          title: prod.title,
-          requested,
-          available,
-          reason: "Insufficient stock",
-        });
-      }
-
-      // igual lo guardo para posible compra
-      items.push({ prod, requested });
-    }
-
-    // si algo falló, no compro nada
-    if (hasError) {
-      return {
-        success: false,
-        reason: "One or more items do not have enough stock",
-        purchased: [],
-        failed,
-        total: 0,
-        order: null,
-      };
-    }
-
-    // ---------- SEGUNDO PASO: aplicar compra ----------
-    const purchased = [];
-    let total = 0;
-
-    for (const { prod, requested } of items) {
-      const available = typeof prod.stock === "number" ? prod.stock : 0;
-      const newStock = available - requested;
-
-      await productRepo.updateById(prod._id, { stock: newStock });
-
-      const unitPrice = prod.price || 0;
-      const subtotal = unitPrice * requested;
-
-      purchased.push({
-        product: prod._id,
-        title: prod.title,
-        quantity: requested,
-        unitPrice,
-        subtotal,
-      });
-
-      total += subtotal;
-    }
-
-    await cartRepo.clearCart(userId);
-
-    // create Order record using purchaser email and amount (new Order schema)
-    const user = await userRepo.findById(userId);
-    const purchaserEmail = (user && (user.email || user.mail)) ? (user.email || user.mail) : String(userId);
-    const orderItems = purchased.map((p) => ({
-      product: p.product,
-      title: p.title,
-      quantity: p.quantity,
-      unitPrice: p.unitPrice,
-      subtotal: p.subtotal,
-    }));
-
-    const orderData = {
-      amount: total,
-      purchaser: purchaserEmail,
-      purchase_datetime: new Date(),
-      items: orderItems,
-    };
-
-    const savedOrder = await orderRepo.create(orderData);
-
-    return {
-      success: true,
-      purchased,
-      failed: [],
-      total,
-      order: savedOrder,
-    };
-  }
 
 
   async purchaseCart(cartId, purchaserEmail) {
@@ -198,6 +85,13 @@ class CartService {
       }
     }
 
+    // If nothing was actually purchased (amount 0 or no purchased items), do not create an order
+    if (!purchasedItems || purchasedItems.length === 0 || amount <= 0) {
+      console.warn('purchaseCart: no items could be processed for cart', cartId);
+      // do not modify the cart so the user can retry or adjust quantities
+      return { order: null, products_not_processed, error: 'No items could be processed for purchase' };
+    }
+
     // create order with code, purchase_datetime, amount, purchaser
     const orderData = { amount, purchaser: purchaserEmail, purchase_datetime: new Date(), items: purchasedItems };
     const savedOrder = await orderRepo.create(orderData);
@@ -205,10 +99,20 @@ class CartService {
     // update cart to contain only unprocessed products
     await cartRepo.updateProductsById(cartId, remainingItems);
 
+    // send confirmation email to purchaser (best-effort; do not fail purchase if email errors)
+    (async () => {
+      try {
+        if (savedOrder && savedOrder.purchaser) {
+          await mailer.sendOrderConfirmation(savedOrder);
+        }
+      } catch (e) {
+        console.error('Failed to send order confirmation email (purchaseCart):', e && e.message ? e.message : e);
+      }
+    })();
+
     return { order: savedOrder, products_not_processed };
   }
 
-  // --- New: cart operations by cart id ---
   async getCartById(cartId, populate = false) {
     const cart = await cartRepo.findById(cartId);
     if (!cart) return null;

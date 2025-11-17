@@ -1,0 +1,50 @@
+<div class="card shadow-sm">
+  <div class="card-body">
+    <h4 class="card-title mb-3">Restablecer contraseña</h4>
+    {{#if invalid}}
+      <div class="alert alert-warning">El enlace es inválido o expiró. Puedes solicitar uno nuevo.</div>
+      <div class="d-grid">
+        <a href="/forgot" class="btn btn-outline-primary">Solicitar enlace de restablecimiento</a>
+      </div>
+    {{else}}
+      {{!-- If token is present render form; token must be passed by the route --}}
+      <form id="resetForm" method="POST" action="/api/sessions/reset/{{token}}">
+        <div class="mb-3">
+          <label class="form-label">Nueva contraseña</label>
+          <input id="passwordInput" name="password" type="password" class="form-control" required minlength="6" />
+        </div>
+        <div class="d-grid">
+          <button id="resetBtn" class="btn btn-primary">Establecer nueva contraseña</button>
+        </div>
+      </form>
+    {{/if}}
+  </div>
+</div>
+
+<script>
+  // Client-side guard: prevent submitting to empty action if token missing
+  (function(){
+    const form = document.getElementById('resetForm');
+    if (!form) return;
+    const action = form.getAttribute('action') || '';
+    if (!action || action.endsWith('/reset/')) {
+      // No token in action — disable submit and show message
+      const btn = document.getElementById('resetBtn');
+      if (btn) btn.disabled = true;
+      const container = form.parentElement;
+      const alert = document.createElement('div');
+      alert.className = 'alert alert-warning mt-3';
+      alert.textContent = 'Token ausente o inválido. Solicita un nuevo enlace desde la página de recuperación.';
+      if (container) container.insertBefore(alert, form);
+      return;
+    }
+
+    form.addEventListener('submit', (e) => {
+      const pwd = document.getElementById('passwordInput');
+      if (pwd && pwd.value.length < 6) {
+        e.preventDefault();
+        alert('La contraseña debe tener al menos 6 caracteres');
+      }
+    });
+  })();
+</script>

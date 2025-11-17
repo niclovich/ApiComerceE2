@@ -4,6 +4,7 @@ const ensureAuth = require('../middleware/ensureAuth');
 
 const {renderPanel} = require('../controllers/panel.controller');
 const { route } = require('./sessions');
+const User = require('../models/User');
 const router = express.Router();
 
 router.get('/', (req, res) => {
@@ -36,5 +37,30 @@ router.get('/orders', ensureAuth, (req, res) => {
 
 router.get('/orders/:id', ensureAuth, (req, res) => {
   return res.render('order', { title: 'Orden' });
+});
+
+// Password reset request view
+router.get('/forgot', ensureGuest, (req, res) => {
+  return res.render('forgot', { title: 'Restablecer contraseña' });
+});
+
+// Redirect bare /reset (no token) to /forgot so user doesn't see an empty form
+router.get('/reset', ensureGuest, (req, res) => {
+  return res.redirect('/forgot');
+});
+
+// Render reset form when user clicks link in email (root path /reset/:token)
+router.get('/reset/:token', ensureGuest, async (req, res) => {
+  try {
+    const token = req.params.token;
+    const user = await User.findOne({ resetPasswordToken: token, resetPasswordExpires: { $gt: new Date() } });
+    if (!user) {
+      return res.render('reset', { invalid: true, title: 'Enlace inválido o expirado' });
+    }
+    return res.render('reset', { token, title: 'Restablecer contraseña' });
+  } catch (e) {
+    console.error('Error rendering reset view:', e && e.message ? e.message : e);
+    return res.status(500).send('Error interno');
+  }
 });
 module.exports = router;

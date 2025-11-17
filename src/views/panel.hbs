@@ -1,28 +1,91 @@
-<div class="card shadow-sm">
-  <div class="card-body">
-    <h3 class="mb-3">Panel</h3>
-    {{#if user}}
-      <p class="lead">Bienvenido <strong>{{user.first_name}} {{user.last_name}}</strong></p>
-      <p class="mb-1">Email: <code>{{user.email}}</code></p>
-      <p class="mb-3">Rol: <span class="badge bg-secondary">{{user.role}}</span></p>
-      <div class="d-flex gap-2 mb-3">
-        {{#if (eq user.role 'vendor')}}
-          <a href="/products/create" class="btn btn-success">Crear producto</a>
-        {{/if}}
-        <button id="logout" class="btn btn-danger">Cerrar sesión</button>
+<div class="container my-4">
+  <div class="row g-4">
+    <!-- Sidebar -->
+    <aside class="col-md-4 col-lg-3">
+      <div class="card shadow-sm">
+        <div class="card-body text-center">
+          <div class="mb-3">
+            <div class="rounded-circle bg-light d-inline-flex align-items-center justify-content-center" style="width:84px;height:84px;font-size:32px;color:#6c757d">{{#if user.first_name}}{{user.first_name.[0]}}{{else}}U{{/if}}</div>
+          </div>
+          <h5 class="card-title mb-1">{{#if user}}{{user.first_name}} {{user.last_name}}{{/if}}</h5>
+          <p class="text-muted small mb-2">{{#if user}}{{user.email}}{{/if}}</p>
+          <p class="mb-2"><span class="badge bg-primary text-white">{{#if user}}{{user.role}}{{/if}}</span></p>
+
+          <div class="d-grid gap-2">
+            {{#if (eq user.role 'vendor')}}
+              <a href="/products/create" class="btn btn-outline-success btn-sm">Crear producto</a>
+            {{/if}}
+              {{#if (eq user.role 'user')}}
+            <a href="/cart" class="btn btn-outline-secondary btn-sm">Ver carrito</a>
+            {{/if}}
+            
+            <a href="/orders" class="btn btn-outline-info btn-sm">Mis órdenes</a>
+            <button id="logout" class="btn btn-danger btn-sm">Cerrar sesión</button>
+          </div>
+        </div>
       </div>
 
-      {{> productList }}
-    {{else}}
-      <p>No estás autenticado. <a href="/login">Iniciar sesión</a></p>
-    {{/if}}
+      <div class="card mt-3">
+        <div class="card-body">
+          <h6 class="mb-2">Resumen</h6>
+          <p class="small text-muted mb-1">Acciones rápidas y estado de tu cuenta.</p>
+          <ul class="list-unstyled small mb-0">
+            <li><strong>Productos:</strong> <span id="panelProductsCount">—</span></li>
+            <li><strong>Carrito:</strong> <span id="panelCartCount">—</span></li>
+          </ul>
+        </div>
+      </div>
+    </aside>
+
+    <!-- Main content -->
+    <main class="col-md-8 col-lg-9">
+      <div class="d-flex justify-content-between align-items-center mb-3">
+        <div>
+          <h3 class="mb-0">Productos</h3>
+          <small class="text-muted">Explora y agrega al carrito</small>
+        </div>
+  
+      </div>
+
+      <div id="productListArea">
+        {{> productList }}
+      </div>
+    </main>
   </div>
 </div>
 
 <script>
+  // Logout handler
   const logoutBtn = document.getElementById('logout');
   if (logoutBtn) logoutBtn.addEventListener('click', async () => {
     await fetch('/api/sessions/logout', { method: 'POST', credentials: 'same-origin' });
     window.location.href = '/';
+  });
+
+  // Update quick counters in the sidebar
+  async function updatePanelCounts(){
+    try{
+      const res = await fetch('/api/products', { credentials: 'same-origin' });
+      if (res.ok){
+        const list = await res.json();
+        const countEl = document.getElementById('panelProductsCount');
+        if (countEl) countEl.textContent = Array.isArray(list) ? list.length : '-';
+      }
+    }catch(e){ console.warn(e); }
+
+    try{
+      const cartRes = await fetch('/api/carts/me', { credentials: 'same-origin' });
+      if (cartRes.ok){
+        const cart = await cartRes.json();
+        const cartEl = document.getElementById('panelCartCount');
+        const qty = (cart && Array.isArray(cart.products)) ? cart.products.reduce((s,i)=>s + (i.quantity||0),0) : 0;
+        if (cartEl) cartEl.textContent = qty;
+      }
+    }catch(e){ console.warn(e); }
+  }
+
+  document.addEventListener('DOMContentLoaded', () => {
+    updatePanelCounts();
+    window.addEventListener('cartUpdated', updatePanelCounts);
   });
 </script>

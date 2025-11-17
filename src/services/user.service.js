@@ -1,4 +1,5 @@
 const userRepo = require('../repositories/user.repository');
+const cartRepo = require('../repositories/cart.repository');
 const { toPublicDTO, fromRequestBody } = require('../dtos/user.dto');
 
 class UserService {
@@ -7,6 +8,13 @@ class UserService {
     const existing = await userRepo.findByEmail(data.email);
     if (existing) throw new Error('Email already in use');
     const user = await userRepo.create(data);
+    // ensure user has an empty cart created
+    try {
+      await cartRepo.upsertCart(user._id, []);
+    } catch (e) {
+      // log but don't block user creation
+      console.error('Failed to create cart for new user:', e && e.message ? e.message : e);
+    }
     return toPublicDTO(user);
   }
 

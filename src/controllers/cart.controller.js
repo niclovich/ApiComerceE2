@@ -164,7 +164,7 @@ async function purchaseCart(req, res) {
     const purchaser = req.user && req.user.email;
     if (!purchaser) return res.status(401).json({ error: 'Unauthorized - purchaser email missing' });
     const result = await cartService.purchaseCart(cartId, purchaser);
-    if (result && result.error) return res.status(404).json({ error: result.error });
+    if (result && result.error) return res.status(400).json({ error: result.error, products_not_processed: result.products_not_processed });
     return res.json({ order: result.order, products_not_processed: result.products_not_processed });
   } catch (err) {
     return res.status(500).json({ error: err.message });

@@ -1,0 +1,55 @@
+<div class="card shadow-sm">
+  <div class="card-body">
+    <h4 class="card-title mb-3">Recuperar contraseña</h4>
+    <div id="alertPlaceholder"></div>
+    <form id="forgotForm" class="row g-3" autocomplete="off">
+      <div class="col-12">
+        <label class="form-label">Email asociado a la cuenta</label>
+        <input name="email" type="email" class="form-control" required />
+      </div>
+      <div class="col-12 d-grid">
+        <button class="btn btn-primary">Enviar instrucciones</button>
+      </div>
+    </form>
+
+    <hr />
+    <p class="small text-muted">Recibirás un correo con un enlace para restablecer tu contraseña si el email existe en nuestro sistema. El enlace expirará en 1 hora.</p>
+    <div class="mt-2"><a href="/login">Volver al inicio de sesión</a></div>
+  </div>
+</div>
+
+<script>
+  const forgotForm = document.getElementById('forgotForm');
+  const alertPlaceholder = document.getElementById('alertPlaceholder');
+
+  function showAlert(message, type = 'info'){
+    alertPlaceholder.innerHTML = `<div class="alert alert-${type} alert-dismissible" role="alert">${message}<button type="button" class="btn-close" data-bs-dismiss="alert"></button></div>`;
+  }
+
+  forgotForm.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const fd = new FormData(forgotForm);
+    const data = Object.fromEntries(fd.entries());
+    showAlert('Enviando solicitud...', 'info');
+    try {
+      const res = await fetch('/api/sessions/forgot', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(data),
+        credentials: 'same-origin'
+      });
+      if (res.ok) {
+        showAlert('Si el email existe, recibirás instrucciones por correo.', 'success');
+        // optionally hide form
+        forgotForm.querySelector('button[type="submit"]').disabled = true;
+      } else {
+        const ct = res.headers.get('content-type') || '';
+        const body = ct.includes('application/json') ? await res.json() : await res.text();
+        const msg = (typeof body === 'string') ? body : (body.error || JSON.stringify(body));
+        showAlert(msg, 'danger');
+      }
+    } catch (err) {
+      showAlert('Error enviando solicitud: ' + err.message, 'danger');
+    }
+  });
+</script>

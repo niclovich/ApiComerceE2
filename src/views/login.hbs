@@ -11,6 +11,9 @@
         <label class="form-label">Contraseña</label>
         <input name="password" type="password" class="form-control" required />
       </div>
+      <div class="col-12">
+        <small class="text-muted"><a href="/forgot" id="forgotLink">Olvidé mi contraseña</a></small>
+      </div>
       <div class="col-12 d-grid">
         <button class="btn btn-primary">Ingresar</button>
       </div>
@@ -63,6 +66,8 @@
       out.textContent = 'Error: ' + err.message;
     }
   });
+
+  // The forgot link navigates to /forgot (renders the dedicated view). No JS interception.
 
   (async function(){
     try {

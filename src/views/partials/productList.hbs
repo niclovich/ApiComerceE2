@@ -1,8 +1,8 @@
-{{!-- Partial: productList.hbs
-     Expects `products` and `user` in the template context. --}}
+{{! Partial: productList.hbs
+     Expects `products` and `user` in the template context. }}
 
 {{#if products}}
-  {{#if (eq user.role 'vendor')}}
+  {{#if (eq user.role "vendor")}}
     <h5>Mis productos</h5>
   {{else}}
     <h5>Productos disponibles</h5>
@@ -12,90 +12,109 @@
     <div class="row g-3 mb-3">
       {{#each products}}
         <div class="col-12 mb-3">
-  <div class="card shadow-sm border-0 rounded-3 h-100">
-    <div class="row g-0">
-      
-      <!-- Imagen -->
-      <div class="col-md-4">
-        <img 
-          src="https://http2.mlstatic.com/D_NQ_NP_2X_673802-MLA84553858545_052025-F.webp" 
-          class="img-fluid rounded-start"
-          alt="{{this.title}}"
-          style="height:230px;width:100%;object-fit:cover;">
-      </div>
+          <div class="card shadow-sm border-0 rounded-3 h-100">
+            <div class="row g-0">
 
-      <!-- Info -->
-      <div class="col-md-8">
-        <div class="card-body d-flex flex-column">
+              <!-- Imagen -->
+              <div class="col-md-4">
+                <img
+                  src="https://http2.mlstatic.com/D_NQ_NP_2X_673802-MLA84553858545_052025-F.webp"
+                  class="img-fluid rounded-start"
+                  alt="{{this.title}}"
+                  style="height:230px;width:100%;object-fit:cover;"
+                />
+              </div>
 
-          <div class="d-flex justify-content-between align-items-start">
-            <h5 class="fw-bold text-dark">{{this.title}}</h5>
-            <span class="badge bg-success fs-6">${{this.price}}</span>
+              <!-- Info -->
+              <div class="col-md-8">
+                <div class="card-body d-flex flex-column">
+
+                  <div class="d-flex justify-content-between align-items-start">
+                    <h5 class="fw-bold text-dark">{{this.title}}</h5>
+                    <span class="badge bg-success fs-6">${{this.price}}</span>
+                  </div>
+
+                  <p class="card-text small text-muted mb-1">
+                    <strong>Código:</strong>
+                    {{this.code}}
+                    &nbsp;·&nbsp;
+                    <strong>Stock:</strong>
+                    {{this.stock}}
+                  </p>
+
+                  <p class="text-muted mb-3">{{this.description}}</p>
+
+                  <div
+                    class="mt-auto d-flex justify-content-between align-items-center"
+                  >
+
+                    <!-- Cantidad -->
+                    <div
+                      class="input-group input-group-sm quantity-box shadow-sm"
+                      style="width:130px;"
+                    >
+                      <button
+                        type="button"
+                        class="btn btn-outline-secondary btn-decrease"
+                        data-product-id="{{this._id}}"
+                        data-stock="{{this.stock}}"
+                      >
+                        <i class="bi bi-dash-lg">-</i>
+                      </button>
+
+                      <input
+                        type="text"
+                        readonly
+                        class="form-control text-center product-qty fw-semibold"
+                        data-product-id="{{this._id}}"
+                        value="1"
+                      />
+
+                      <button
+                        type="button"
+                        class="btn btn-outline-secondary btn-increase"
+                        data-product-id="{{this._id}}"
+                        data-stock="{{this.stock}}"
+                      >
+                        <i class="bi bi-plus-lg">+</i>
+                      </button>
+                    </div>
+
+                    <!-- Acciones -->
+                    <div class="d-flex gap-2">
+
+                      {{#if (eq user.role "user")}}
+                        <button
+                          type="button"
+                          class="btn btn-primary btn-sm px-3 btn-add-cart shadow-sm"
+                          data-product-id="{{this._id}}"
+                          data-stock="{{this.stock}}"
+                        >
+                          <i class="bi bi-cart-plus"></i>
+                          Agregar
+                        </button>
+                      {{/if}}
+
+                      <a
+                        href="/products/{{this._id}}"
+                        class="btn btn-outline-primary btn-sm px-3 shadow-sm"
+                      >
+                        Ver
+                      </a>
+                    </div>
+
+                  </div><!-- /footer -->
+                </div><!-- /card-body -->
+              </div>
+
+            </div>
           </div>
-
-          <p class="card-text small text-muted mb-1">
-            <strong>Código:</strong> {{this.code}}
-            &nbsp;·&nbsp;
-            <strong>Stock:</strong> {{this.stock}}
-          </p>
-
-          <p class="text-muted mb-3">{{this.description}}</p>
-
-          <div class="mt-auto d-flex justify-content-between align-items-center">
-
-            <!-- Cantidad -->
-            <div class="input-group input-group-sm quantity-box shadow-sm" style="width:130px;">
-              <button 
-                type="button" 
-                class="btn btn-outline-secondary btn-decrease"
-                data-product-id="{{this._id}}"
-                data-stock="{{this.stock}}">
-                <i class="bi bi-dash-lg">-</i>
-              </button>
-
-              <input 
-                type="text" 
-                readonly 
-                class="form-control text-center product-qty fw-semibold"
-                data-product-id="{{this._id}}" 
-                value="1">
-
-              <button 
-                type="button" 
-                class="btn btn-outline-secondary btn-increase"
-                data-product-id="{{this._id}}"
-                data-stock="{{this.stock}}">
-                <i class="bi bi-plus-lg">+</i>
-              </button>
-            </div>
-
-            <!-- Acciones -->
-            <div class="d-flex gap-2">
-              <button 
-                type="button"
-                class="btn btn-primary btn-sm px-3 btn-add-cart shadow-sm"
-                data-product-id="{{this._id}}"
-                data-stock="{{this.stock}}">
-                <i class="bi bi-cart-plus"></i> Agregar
-              </button>
-
-              <a href="/products/{{this._id}}" class="btn btn-outline-primary btn-sm px-3 shadow-sm">
-                Ver
-              </a>
-            </div>
-
-          </div><!-- /footer -->
-        </div><!-- /card-body -->
-      </div>
-
-    </div>
-  </div>
-</div>
+        </div>
 
       {{/each}}
     </div>
   {{else}}
-    {{#if (eq user.role 'vendor')}}
+    {{#if (eq user.role "vendor")}}
       <p class="text-muted">No tiene productos creados aún.</p>
     {{else}}
       <p class="text-muted">No hay productos disponibles en este momento.</p>
@@ -104,99 +123,39 @@
 {{/if}}
 
 <script>
-  function getQtyInput(pid) {
-    return document.querySelector(`.product-qty[data-product-id="${pid}"]`);
-  }
-
-  async function ensureSession() {
-    try {
-      const cur = await fetch('/api/sessions/current', { credentials: 'same-origin' });
-      return cur.ok;
-    } catch {
-      return false;
-    }
-  }
-
-  // ---------------------------
-  // 1) Disminuir cantidad
-  // ---------------------------
-  document.addEventListener('click', (e) => {
-    const btn = e.target.closest('.btn-decrease');
-    if (!btn) return;
-    e.preventDefault();
-
-    const pid = btn.dataset.productId;
-    const input = getQtyInput(pid);
-    let qty = parseInt(input.value || '1', 10);
-
-    qty = Math.max(1, qty - 1);
-    input.value = qty;
-  });
-
-  // ---------------------------
-  // 2) Aumentar cantidad
-  // ---------------------------
-  document.addEventListener('click', (e) => {
-    const btn = e.target.closest('.btn-increase');
-    if (!btn) return;
-    e.preventDefault();
-
-    const pid = btn.dataset.productId;
-    const stock = parseInt(btn.dataset.stock || '9999', 10);
-    const input = getQtyInput(pid);
-    let qty = parseInt(input.value || '1', 10);
-
-    qty = Math.min(stock, qty + 1);
-    input.value = qty;
-  });
-
-  // ---------------------------
-  // 3) Agregar al carrito
-  // ---------------------------
-  document.addEventListener('click', async (e) => {
-    const btn = e.target.closest('.btn-add-cart');
-    if (!btn) return;
-    e.preventDefault();
-
-    const pid = btn.dataset.productId;
-    const stock = parseInt(btn.dataset.stock || '9999', 10);
-    const input = getQtyInput(pid);
-    let qty = parseInt(input.value || '1', 10);
-
-    if (qty > stock) qty = stock;
-    input.value = qty;
-
-    // Verificar sesión
-    if (!(await ensureSession())) {
-      return window.location.href = '/login';
-    }
-
-    const original = btn.innerHTML;
-    btn.disabled = true;
-    btn.innerHTML = '<i class="bi bi-check-lg"></i> Agregado';
-
-    try {
-      // get current user's cart to obtain cart id
-      const cartRes = await fetch('/api/carts/me', { credentials: 'same-origin' });
-      if (!cartRes.ok) throw new Error('No cart');
-      const cart = await cartRes.json();
-      const cid = cart && (cart._id || cart.id);
-      if (!cid) throw new Error('Cart id unknown');
-
-      const response = await fetch(`/api/carts/${cid}/product/${pid}`, {
-        method: 'POST',
-        credentials: 'same-origin',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ quantity: qty }),
-      });
-
-      window.location.href = '/cart';
-
-    } catch (err) {
-      console.error(err);
-      alert('Error al agregar al carrito');
-      btn.disabled = false;
-      btn.innerHTML = original;
-    }
-  });
+  function getQtyInput(pid) { return
+  document.querySelector(`.product-qty[data-product-id="${pid}"]`); } async
+  function ensureSession() { try { const cur = await
+  fetch('/api/sessions/current', { credentials: 'same-origin' }); return cur.ok;
+  } catch { return false; } } // --------------------------- // 1) Disminuir
+  cantidad // --------------------------- document.addEventListener('click', (e)
+  => { const btn = e.target.closest('.btn-decrease'); if (!btn) return;
+  e.preventDefault(); const pid = btn.dataset.productId; const input =
+  getQtyInput(pid); let qty = parseInt(input.value || '1', 10); qty =
+  Math.max(1, qty - 1); input.value = qty; }); // --------------------------- //
+  2) Aumentar cantidad // ---------------------------
+  document.addEventListener('click', (e) => { const btn =
+  e.target.closest('.btn-increase'); if (!btn) return; e.preventDefault(); const
+  pid = btn.dataset.productId; const stock = parseInt(btn.dataset.stock ||
+  '9999', 10); const input = getQtyInput(pid); let qty = parseInt(input.value ||
+  '1', 10); qty = Math.min(stock, qty + 1); input.value = qty; }); //
+  --------------------------- // 3) Agregar al carrito //
+  --------------------------- document.addEventListener('click', async (e) => {
+  const btn = e.target.closest('.btn-add-cart'); if (!btn) return;
+  e.preventDefault(); const pid = btn.dataset.productId; const stock =
+  parseInt(btn.dataset.stock || '9999', 10); const input = getQtyInput(pid); let
+  qty = parseInt(input.value || '1', 10); if (qty > stock) qty = stock;
+  input.value = qty; // Verificar sesión if (!(await ensureSession())) { return
+  window.location.href = '/login'; } const original = btn.innerHTML;
+  btn.disabled = true; btn.innerHTML = '<i class="bi bi-check-lg"></i>
+  Agregado'; try { // get current user's cart to obtain cart id const cartRes =
+  await fetch('/api/carts/me', { credentials: 'same-origin' }); if (!cartRes.ok)
+  throw new Error('No cart'); const cart = await cartRes.json(); const cid =
+  cart && (cart._id || cart.id); if (!cid) throw new Error('Cart id unknown');
+  const response = await fetch(`/api/carts/${cid}/product/${pid}`, { method:
+  'POST', credentials: 'same-origin', headers: { 'Content-Type':
+  'application/json' }, body: JSON.stringify({ quantity: qty }), });
+  window.location.href = '/cart'; } catch (err) { console.error(err);
+  alert('Error al agregar al carrito'); btn.disabled = false; btn.innerHTML =
+  original; } });
 </script>
